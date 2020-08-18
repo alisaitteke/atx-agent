@@ -714,6 +714,74 @@ func main() {
 		}
 	}
 
+	ticker := time.NewTicker(5 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+
+				have := false
+				propOutput, _ := runShell("getprop")
+				re := regexp.MustCompile(`\[(.*?)\]:\s*\[(.*?)\]`)
+				matches := re.FindAllStringSubmatch(string(propOutput), -1)
+				props := make(map[string]string)
+
+				//obj := make(map[string]string)
+
+				for _, m := range matches {
+					key := m[1]
+					val := m[2]
+					sp := strings.Split(key, ".")
+
+					if key == "persist.droid.grid_url" {
+						have = true
+					}
+
+					if len(sp) == 3 && sp[0] == "persist" && sp[1] == "droid" {
+						props[key] = val
+					}
+				}
+
+				if have {
+
+					type ObjData struct {
+						DeviceIp net.IP            `json:"device_ip,omitempty"`
+						AtxInfo  interface{}       `json:"atx_info,omitempty"`
+						Props    map[string]string `json:"props,omitempty"`
+					}
+
+					outIp, err := getOutboundIP()
+
+					var _data ObjData
+
+					_data.AtxInfo = getDeviceInfo()
+					_data.DeviceIp = outIp
+					_data.Props = props
+
+					jsonValue, err := json.MarshalIndent(_data, "", "  ")
+
+					println(string(jsonValue))
+
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					//log.Printf("%s", _data)
+					GridUrl := props["persist.droid.grid_url"]
+					http.Post(GridUrl, "application/json", bytes.NewBuffer(jsonValue))
+					//log.Printf("%s", err)
+					//log.Printf("%s", resp)
+				}
+
+				//log.Printf("C %v", props)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	server := NewServer()
 
 	sigc := make(chan os.Signal, 1)
