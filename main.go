@@ -744,6 +744,15 @@ func main() {
 				}
 
 				if have {
+					interval, err := strconv.ParseInt(props["persist.droid.interval"], 10, 64)
+
+					_i := time.Duration(interval)
+
+					log.Printf("Duration %", interval)
+
+					if interval > 0 {
+						ticker = time.NewTicker(_i * 1000 * time.Millisecond)
+					}
 
 					type ObjData struct {
 						DeviceIp net.IP            `json:"device_ip,omitempty"`
@@ -772,8 +781,7 @@ func main() {
 					client := http.Client{Timeout: 2 * time.Second}
 					res, _err := client.Post(GridUrl, "application/json", bytes.NewBuffer(jsonValue))
 					if _err != nil {
-						fmt.Println(res)
-						return
+						log.Printf("Heartbeat not sended %s", res)
 					} else {
 						log.Printf("Heartbeat sent %s", GridUrl)
 					}
