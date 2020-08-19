@@ -761,7 +761,7 @@ func main() {
 
 					jsonValue, err := json.MarshalIndent(_data, "", "  ")
 
-					println(string(jsonValue))
+					//println(string(jsonValue))
 
 					if err != nil {
 						fmt.Println(err)
@@ -769,12 +769,15 @@ func main() {
 					}
 					//log.Printf("%s", _data)
 					GridUrl := props["persist.droid.grid_url"]
-					http.Post(GridUrl, "application/json", bytes.NewBuffer(jsonValue))
-					//log.Printf("%s", err)
-					//log.Printf("%s", resp)
+					client := http.Client{Timeout: 2 * time.Second}
+					res, _err := client.Post(GridUrl, "application/json", bytes.NewBuffer(jsonValue))
+					if _err != nil {
+						fmt.Println(res)
+						return
+					} else {
+						log.Printf("Heartbeat sent %s", GridUrl)
+					}
 				}
-
-				//log.Printf("C %v", props)
 			case <-quit:
 				ticker.Stop()
 				return
